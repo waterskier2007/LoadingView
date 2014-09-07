@@ -6,7 +6,6 @@
 //
 
 #import "BHKLoadingView.h"
-#import "Colours.h"
 
 @interface CircleView : UIView
 
