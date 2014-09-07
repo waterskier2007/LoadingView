@@ -124,9 +124,9 @@
     [self addSubview:circleView3];
     
     //Default colors for layers
-    _colorCustomLayer1 = [UIColor infoBlueColor];
-    _colorCustomLayer2 = [UIColor successColor];
-    _colorCustomLayer3 = [UIColor dangerColor];
+    _colorCustomLayer1 = [UIColor blueColor];
+    _colorCustomLayer2 = [UIColor greenColor];
+    _colorCustomLayer3 = [UIColor redColor];
     
     circleView1.oSet = 0.0f;
     circleView2.oSet = M_PI / 4.0f;
