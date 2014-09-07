@@ -1,12 +1,11 @@
 //
-//  MUGLoadingView.m
-//  BreweryMugClub
+//  BHKLoadingView.m
 //
 //  Created by Brendan Kirchner on 6/20/14.
 //  Copyright (c) 2014 BHK Mobile App Solutions. All rights reserved.
 //
 
-#import "MUGLoadingView.h"
+#import "BHKLoadingView.h"
 #import "Colours.h"
 
 @interface CircleView : UIView
@@ -25,11 +24,13 @@
 -(void)drawRect:(CGRect)rect
 {
     CGContextRef theContext = UIGraphicsGetCurrentContext();
+    
     UIBezierPath* ovalPath = [UIBezierPath bezierPath];
 //    [ovalPath addArcWithCenter: CGPointMake(CGRectGetMidX(ovalRect), CGRectGetMidY(ovalRect)) radius: CGRectGetWidth(ovalRect) / 2 startAngle: 190 * M_PI/180 endAngle: 260 * M_PI/180 clockwise: YES];
     [self path:ovalPath addArcWithCenter:CGPointMake(CGRectGetMidX(ovalRect), CGRectGetMidY(ovalRect)) radius:CGRectGetWidth(ovalRect) / 2 start:10 * M_PI/180 end:80 * M_PI/180];
     
     CGContextAddPath(theContext, ovalPath.CGPath);
+
     
     //// Oval 2 Drawing
     UIBezierPath* oval2Path = [UIBezierPath bezierPath];
@@ -52,15 +53,32 @@
     
     CGContextAddPath(theContext, oval4Path.CGPath);
     
-    
     CGContextSetLineWidth(theContext,lineWidth);
     CGContextSetStrokeColorWithColor(theContext, colorLine.CGColor);
     CGContextStrokePath(theContext);
+    
 }
 
 -(void)path:(UIBezierPath *)path addArcWithCenter:(CGPoint)center radius:(CGFloat)radius start:(CGFloat)start end:(CGFloat)end
 {
     [path addArcWithCenter:center radius:radius startAngle:(start + _oSet) endAngle:(end + _oSet) clockwise:YES];
+}
+
+@end
+
+@interface BHKAnimation : CABasicAnimation
+
+@end
+
+@implementation BHKAnimation
+
++(instancetype)animationWithKeyPath:(NSString *)path
+{
+    BHKAnimation *anim = [super animationWithKeyPath:path];
+    anim.fromValue = [NSNumber numberWithFloat:0];
+    anim.toValue = [NSNumber numberWithFloat:2.0f * M_PI];
+    anim.repeatCount = HUGE_VALF;
+    return anim;
 }
 
 @end
@@ -71,9 +89,7 @@
     CircleView *circleView2;
     CircleView *circleView3;
     
-    UIColor *colorCustomLayer;
-    UIColor *colorCustomLayer2;
-    UIColor *colorCustomLayer3;
+    BOOL isAnimating;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -108,9 +124,9 @@
     [self addSubview:circleView3];
     
     //Default colors for layers
-    colorCustomLayer = [UIColor blueColor];
-    colorCustomLayer2 = [UIColor greenColor];
-    colorCustomLayer3 = [UIColor redColor];
+    _colorCustomLayer1 = [UIColor infoBlueColor];
+    _colorCustomLayer2 = [UIColor successColor];
+    _colorCustomLayer3 = [UIColor dangerColor];
     
     circleView1.oSet = 0.0f;
     circleView2.oSet = M_PI / 4.0f;
@@ -118,6 +134,9 @@
     
     [self setBackgroundColor:[UIColor clearColor]];
     [self setClipsToBounds:NO];
+    [self setUserInteractionEnabled:YES];
+    
+    [self setup];
 }
 
 /*
@@ -131,67 +150,118 @@
 }
 */
 
--(void)setup
+-(void)setColorCustomLayer1:(UIColor *)colorCustomLayer1
 {
-    circleView1.backgroundColor = [UIColor clearColor];
-    circleView1.frame = CGRectInset(self.bounds, 0.0f, 0.0f);
-    int scale = 2.5;
-    circleView1.ovalRect = CGRectMake(scale , scale, self.frame.size.width - 2 * scale,  self.frame.size.height - 2 * scale);
-    circleView1.lineWidth = 5;
-    circleView1.colorLine = colorCustomLayer;
+    _colorCustomLayer1 = colorCustomLayer1;
+    circleView1.colorLine = colorCustomLayer1;
     [circleView1 setNeedsDisplay];
-    
-    circleView2.backgroundColor = [UIColor clearColor];
-    circleView2.frame = CGRectInset(self.bounds, 0.0f, 0.0f);
-    int scale2 = 7.5;
-    circleView2.ovalRect = CGRectMake(scale2 , scale2, self.frame.size.width - 2 * scale2,  self.frame.size.height - 2 * scale2);
-    circleView2.lineWidth = 5;
+}
+
+-(void)setColorCustomLayer2:(UIColor *)colorCustomLayer2
+{
+    _colorCustomLayer2 = colorCustomLayer2;
     circleView2.colorLine = colorCustomLayer2;
     [circleView2 setNeedsDisplay];
-    
-    circleView3.backgroundColor = [UIColor clearColor];
-    circleView3.frame = CGRectInset(self.bounds, 0.0f, 0.0f);
-    int scale3 = 12.5;
-    circleView3.ovalRect = CGRectMake(scale3 , scale3, self.frame.size.width - 2 * scale3,  self.frame.size.height - 2 * scale3);
-    circleView3.lineWidth = 5;
+}
+
+-(void)setColorCustomLayer3:(UIColor *)colorCustomLayer3
+{
+    _colorCustomLayer3 = colorCustomLayer3;
     circleView3.colorLine = colorCustomLayer3;
     [circleView3 setNeedsDisplay];
 }
 
+-(void)setup
+{
+    CGRect rect = self.bounds;
+    CGFloat lineWidth = (rect.size.width / 2.0f) / 5.0f;
+    CGFloat sc = lineWidth / 2.0f;
+    
+    circleView1.backgroundColor = [UIColor clearColor];
+    circleView1.frame = rect;
+    CGFloat scale1 = sc;
+    circleView1.ovalRect = CGRectMake(scale1, scale1, rect.size.width - 2 * scale1,  rect.size.height - 2 * scale1);
+    circleView1.lineWidth = lineWidth;
+    circleView1.colorLine = _colorCustomLayer1;
+//    [circleView1 setNeedsDisplay];
+    
+    circleView2.backgroundColor = [UIColor clearColor];
+    circleView2.frame = rect;
+    CGFloat scale2 = scale1 + lineWidth;
+    circleView2.ovalRect = CGRectMake(scale2, scale2, rect.size.width - 2 * scale2,  rect.size.height - 2 * scale2);
+    circleView2.lineWidth = lineWidth;
+    circleView2.colorLine = _colorCustomLayer2;
+//    [circleView2 setNeedsDisplay];
+    
+    circleView3.backgroundColor = [UIColor clearColor];
+    circleView3.frame = rect;
+    CGFloat scale3 = scale2 + lineWidth;
+    circleView3.ovalRect = CGRectMake(scale3, scale3, rect.size.width - 2 * scale3,  rect.size.height - 2 * scale3);
+    circleView3.lineWidth = lineWidth;
+    circleView3.colorLine = _colorCustomLayer3;
+//    [circleView3 setNeedsDisplay];
+    
+//    UITapGestureRecognizer *recog = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapped)];
+//    [self addGestureRecognizer:recog];
+}
+
 -(void)startAnimating
 {
-    CABasicAnimation *fullRotation = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
-    fullRotation.fromValue = [NSNumber numberWithFloat:0];
-    fullRotation.toValue = [NSNumber numberWithFloat:MAXFLOAT];
-    fullRotation.duration = MAXFLOAT * 0.6;
-    fullRotation.removedOnCompletion = YES;
-    
-    [circleView1.layer addAnimation:fullRotation forKey:nil];
-    
-    
-    CABasicAnimation *fullRotation2 = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
-    fullRotation2.fromValue = [NSNumber numberWithFloat:0];
-    fullRotation2.toValue = [NSNumber numberWithFloat:-MAXFLOAT];
-    fullRotation2.duration = MAXFLOAT * 0.4;
-    fullRotation2.removedOnCompletion = YES;
-    
-    [circleView2.layer addAnimation:fullRotation2 forKey:nil];
-    
-    
-    CABasicAnimation *fullRotation3 = [CABasicAnimation animationWithKeyPath:@"transform.rotation"];
-    fullRotation3.fromValue = [NSNumber numberWithFloat:0];
-    fullRotation3.toValue = [NSNumber numberWithFloat:MAXFLOAT];
-    fullRotation3.duration = MAXFLOAT * 0.2;
-    fullRotation3.removedOnCompletion = YES;
-    
-    [circleView3.layer addAnimation:fullRotation3 forKey:nil];
+    if (!isAnimating) {
+        BHKAnimation *fullRotation1 = [BHKAnimation animationWithKeyPath:@"transform.rotation"];
+        fullRotation1.duration = 3.75;
+        [circleView1.layer addAnimation:fullRotation1 forKey:nil];
+        
+        BHKAnimation *fullRotation2 = [BHKAnimation animationWithKeyPath:@"transform.rotation"];
+        fullRotation2.duration = 2.5;
+        [circleView2.layer addAnimation:fullRotation2 forKey:nil];
+        
+        BHKAnimation *fullRotation3 = [BHKAnimation animationWithKeyPath:@"transform.rotation"];
+        fullRotation3.duration = 1.25;
+        [circleView3.layer addAnimation:fullRotation3 forKey:nil];
+        
+        isAnimating = YES;
+    }
 }
 
 -(void)stopAnimating
 {
-    [circleView1.layer removeAllAnimations];
-    [circleView2.layer removeAllAnimations];
-    [circleView3.layer removeAllAnimations];
+    if (isAnimating) {
+        [circleView1.layer removeAllAnimations];
+        [circleView2.layer removeAllAnimations];
+        [circleView3.layer removeAllAnimations];
+        
+        isAnimating = NO;
+    }
+}
+
+-(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [self changeColors];
+}
+
+-(void)tapped
+{
+    [self changeColors];
+}
+
+-(void)changeColors
+{
+    circleView1.colorLine = [BHKLoadingView randomColor];
+    circleView2.colorLine = [BHKLoadingView randomColor];
+    circleView3.colorLine = [BHKLoadingView randomColor];
+    
+    [circleView1 setNeedsDisplay];
+    [circleView2 setNeedsDisplay];
+    [circleView3 setNeedsDisplay];
+}
+
++(UIColor *)randomColor
+{
+    CGFloat hue = ( arc4random() % 256 / 256.0 );  //  0.0 to 1.0
+    CGFloat saturation = ( arc4random() % 128 / 256.0 ) + 0.5;  //  0.5 to 1.0, away from white
+    CGFloat brightness = ( arc4random() % 128 / 256.0 ) + 0.5;  //  0.5 to 1.0, away from black
+    return [UIColor colorWithHue:hue saturation:saturation brightness:brightness alpha:1];
 }
 
 @end
